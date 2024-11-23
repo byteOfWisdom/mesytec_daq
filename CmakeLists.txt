@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.30)
+project(mesytec-daq)
+
+add_subdirectory(mesytec-mvlc)
+include_directories(${mesytec-mvlc_SOURCE_DIR})
+
+add_executable(mdaq src/daq-main.cpp)
+target_link_libraries(mdaq PRIVATE mesytec-mvlc)

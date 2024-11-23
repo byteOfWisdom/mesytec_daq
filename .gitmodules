@@ -1,0 +1,3 @@
+[submodule "mesytec-mvlc"]
+	path = mesytec-mvlc
+	url = https://github.com/flueke/mesytec-mvlc.git
