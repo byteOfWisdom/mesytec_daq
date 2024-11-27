@@ -27,7 +27,7 @@ void interrupt(int s) {
 		std::cout << "ERROR: " << ec << std::endl;
 	}
 	std::fclose(test);
-	exit(1);
+	exit(0);
 }
 
 struct qdc_data {
@@ -154,15 +154,25 @@ int main(int argc, char* argv[]){
 
 	signal (SIGINT, &interrupt);
 
-	while (running) {
+	uint64_t event_goal = argc > 3? (uint64_t) atof(argv[3]) : 0;
+	uint64_t events_gotten = 0;
+
+	if (event_goal != 0) {
+		printf("fetching %lli events\n", event_goal);
+	}
+
+	while (running && (event_goal == 0 || events_gotten <= event_goal)) {
 		auto event = next_event(rdo);
 		if (event.type == EventContainer::Type::Readout) {
+			++ events_gotten;
+			//printf("logged %lli events\n", events_gotten);
 			qdc_data data = parse_event_data(event.readout.moduleDataList[0]);
-			std::fprintf(test, "%i, %i, %i\n", data.long_integration, data.short_integration, data.time_diff);
+			std::fprintf(test, "%i, %i, %i, %lli\n", data.long_integration, data.short_integration, data.time_diff, events_gotten);
 			fflush(test);
-			//printf("got an event \n");
 		}
 	}
+
+	interrupt(0);
 
 	return 0;
 }
