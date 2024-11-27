@@ -1,5 +1,7 @@
 build
 .cache
+mesytec-mvlc
+.gitmodules
 
 # Prerequisites
 *.d
