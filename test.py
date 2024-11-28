@@ -7,7 +7,7 @@ long = []
 short = []
 lock = threading.Lock();
 
-file = open("test.fifo", 'r')
+file = open("build/test.fifo", 'r')
 
 def read_data():
     global long, short, lock
