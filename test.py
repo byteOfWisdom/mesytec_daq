@@ -21,13 +21,17 @@ def read_data():
 
 def update(frame):
     global long, short
-    plt.cla()
-    plt.ylim([1, 2.5])
+    plt.clf()
     plt.xlabel("long")
     plt.ylabel("(long + short) / long")
     lock.acquire()
-    plt.scatter(np.array(long), (np.array(long) + np.array(short)) / np.array(long), marker='x')
+
+    along = np.array(long)
+    ashort = np.array(short)
     lock.release()
+    #bins = np.histogram2d(along, (along - ashort) / along, [100, 20])
+    #plt.scatter(np.array(long), (np.array(long) + np.array(short)) / np.array(long), marker='x')
+    plt.hist2d(along, (along - ashort) / along, (100, 50), [[0, 40000], [-0.2, 0.45]])
 
 t = threading.Thread(target=read_data)
 t.start()
