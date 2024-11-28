@@ -18,15 +18,17 @@ using namespace mesytec::mvlc;
 bool running = true;
 
 MVLC mvlc;
-FILE* test;
+FILE* out_file;
 
 void interrupt(int s) {
+	(void) s;
 	running = false;
 	auto ec = mvlc.disconnect();
 	if (ec) {
 		std::cout << "ERROR: " << ec << std::endl;
 	}
-	std::fclose(test);
+	std::fclose(out_file);
+	// TODO: find non-segfaulting way of exiting
 	exit(0);
 }
 
@@ -60,15 +62,16 @@ std::tuple<uint8_t, uint16_t> parse_event(uint32_t data_block) {
 qdc_data parse_event_data(readout_parser::ModuleData data) {
 	uint32_t* raw = (uint32_t*) data.data.data;
 
-	/*
-	if (data.data.size != (uint16_t) (raw[0] & 0x000000ff)) {
-		std::printf("received \n");
-		return {42, 0, 0, 0, 0};
-		} */
-
 	qdc_data res = {};
 
-	for (uint8_t i = 1; i <= 3; ++i) {
+	const uint32_t header_mask = 0xf0000000;
+	const uint32_t event_data_header = 0x10000000;
+
+
+	for (uint8_t i = 0; i <= data.data.size; ++i) {
+		if ((raw[i] & header_mask) != event_data_header) {
+			continue;
+		}
 		auto [chan, value] = parse_event(raw[i]);
 		if (chan <= 15) res.channel = chan;
 		if (chan <= 15) res.long_integration = value;
@@ -81,16 +84,6 @@ qdc_data parse_event_data(readout_parser::ModuleData data) {
 
 
 int main(int argc, char* argv[]){
-	// MVLC connection overrides
-	std::string opt_mvlcEthHost;
-	std::string opt_mvlcUSBSerial;
-
-	// listfile and run options
-	bool opt_noListfile = true;
-	bool opt_overwriteListfile = false;
-	std::string opt_listfileOut;
-	std::string opt_listfileCompressionType = "lz4";
-	int opt_listfileCompressionLevel = 0;
 	std::string opt_crateConfig;
 
 	if (argc < 3) {
@@ -122,21 +115,9 @@ int main(int argc, char* argv[]){
 
 	std::cout << "Connected to MVLC, " << mvlc.connectionInfo() << std::endl;
 
-	ListfileParams listfileParams = {
-		.writeListfile = !opt_noListfile,
-		.filepath = opt_listfileOut,
-		.overwrite = opt_overwriteListfile,
+	ListfileParams listfileParams = {.writeListfile = false};
 
-		.compression = (opt_listfileCompressionType == "lz4"
-		? ListfileParams::Compression::LZ4
-		: ListfileParams::Compression::ZIP),
-
-		.compressionLevel = opt_listfileCompressionLevel,
-	};
-
-	readout_parser::ReadoutParserCallbacks parserCallbacks;
-
-	test = std::fopen(argv[2], "w");
+	out_file = std::fopen(argv[2], "w");
 
 	auto rdo = make_mvlc_readout_blocking(
 		mvlc,
@@ -146,8 +127,7 @@ int main(int argc, char* argv[]){
 
 	std::cout << "starting readout" << std::endl;
 
-	if (auto ec = rdo.start())
-	{
+	if (auto ec = rdo.start()) {
 		std::cerr << "Error starting readout: " << ec.message() << std::endl;
 		throw std::runtime_error("ReadoutWorker error");
 	}
@@ -165,10 +145,11 @@ int main(int argc, char* argv[]){
 		auto event = next_event(rdo);
 		if (event.type == EventContainer::Type::Readout) {
 			++ events_gotten;
-			//printf("logged %lli events\n", events_gotten);
 			qdc_data data = parse_event_data(event.readout.moduleDataList[0]);
-			std::fprintf(test, "%i, %i, %i, %lli\n", data.long_integration, data.short_integration, data.time_diff, events_gotten);
-			fflush(test);
+			std::fprintf(out_file, "%i, %i, %i, %lli\n",
+				data.long_integration, data.short_integration, data.time_diff, events_gotten
+			);
+			fflush(out_file);
 		}
 	}
 
