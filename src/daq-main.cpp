@@ -165,8 +165,8 @@ int main(int argc, char* argv[]){
 			qdc_data data = parse_event_data(event.readout.moduleDataList[0]);
 			if (data == last_event) continue;
 			++ events_gotten;
-			std::fprintf(out_file, "%i, %i, %lli, %lli\n",
-				data.long_integration, data.short_integration, data.time_diff, events_gotten
+			std::fprintf(out_file, "%i, %i, %lli, %i, %lli\n",
+				data.long_integration, data.short_integration, data.time_diff, data.channel, events_gotten
 			);
 			fflush(out_file);
 			last_event = data;
