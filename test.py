@@ -2,17 +2,20 @@ import threading
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from sys import stdin
 
 long = []
 short = []
 lock = threading.Lock();
 
-file = open("build/test.fifo", 'r')
+file = stdin
 
 def read_data():
     global long, short, lock
     while True:
             event = file.readline().split(',')
+            if len(event) == 1:
+                continue
             lock.acquire()
             long.append(int(event[0]))
             short.append(int(event[1]))
@@ -23,7 +26,7 @@ def update(frame):
     global long, short
     plt.clf()
     plt.xlabel("long")
-    plt.ylabel("(long + short) / long")
+    plt.ylabel("(long - short) / long")
     lock.acquire()
 
     along = np.array(long)
