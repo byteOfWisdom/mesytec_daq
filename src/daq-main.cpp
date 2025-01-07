@@ -1,5 +1,6 @@
 #include "mesytec-mvlc/mvlc.h"
 #include "mesytec-mvlc/mvlc_blocking_data_api.h"
+#include "mesytec-mvlc/mvlc_constants.h"
 #include "mesytec-mvlc/mvlc_factory.h"
 #include <bitset>
 #include <cstdint>
@@ -71,15 +72,17 @@ qdc_data parse_event_data(readout_parser::ModuleData data) {
 	qdc_data res = {};
 	res.time_diff = 0;
 
-	const uint32_t header_mask = 0xf0000000;
+	const uint32_t header_mask = 0b1111 << 28;//0xf0000000;
 	const uint32_t data_mask = 0x0000ffff;
 
 	const uint32_t event_data_header = 0b0001 << 28;
-	const uint32_t timing_header = 0b1100 << 28;
+	const uint32_t timing_header = 0b11000000000000000000000000000000;
 	const uint32_t extended_timing_header = 0b0010 << 28;
 	const uint32_t meta_header = 0b0100 << 28;
 
-	for (uint8_t i = 0; i < data.data.size; ++i) {
+	const uint32_t time_mask = ~timing_header;
+
+	for (uint8_t i = 0; i <= data.data.size; ++i) {
 		if ((raw[i] & header_mask) == event_data_header) {
 			auto [chan, value] = parse_event(raw[i]);
 			if (chan <= 15) res.channel = chan;
@@ -87,9 +90,11 @@ qdc_data parse_event_data(readout_parser::ModuleData data) {
 			if (chan >= 48 && chan <= 63) res.short_integration = value;
 			//if (chan >= 32 && chan <= 33) res.time_diff = value;
 		} else if ((raw[i] & header_mask) == timing_header) {
-			res.time_diff |= (raw[i] & (~timing_header));
+			res.time_diff |= (raw[i] & time_mask);
+			printf("got normal time stamp: %u\n", raw[i] & time_mask);
 		} else if ((raw[i] & header_mask) == extended_timing_header) {
-			res.time_diff |= (raw[i] & data_mask) << 30;
+			res.time_diff |= ((uint64_t) (raw[i] & data_mask)) << 30;
+			printf("got extended time stamp: %u\n", raw[i] & data_mask);
 		} else if ((raw[i] & header_mask) == meta_header) {
 			continue;
 		}
@@ -135,43 +140,47 @@ int main(int argc, char* argv[]){
 
 	out_file = std::fopen(argv[2], "w");
 
-	auto rdo = make_mvlc_readout_blocking(
+	readout_parser::ReadoutParserCallbacks parserCallbacks;
+	parserCallbacks.eventData = [] (
+		void *, int crateId, int eventIndex, const readout_parser::ModuleData *moduleDataList, unsigned moduleCount)
+	{
+		(void) moduleCount;
+		(void) crateId;
+		(void) eventIndex;
+		qdc_data data = parse_event_data(moduleDataList[0]);
+		std::fprintf(out_file, "%i, %i, %lli, %i, %lli\n",
+			data.long_integration, data.short_integration, data.time_diff, data.channel, (uint64_t) 0
+		);
+		fflush(out_file);
+
+	};
+
+	parserCallbacks.systemEvent = [] (void *, int crateId, const u32 *header, u32 size) {
+		std::cout
+			<< "SystemEvent: type=" << system_event_type_to_string(
+				system_event::extract_subtype(*header))
+			<< ", size=" << size << ", bytes=" << (size * sizeof(u32))
+			<< std::endl;
+		fmt::print("system event: crateId={}, header={:08x} \n", crateId, *header);
+	};
+
+	auto rdo = make_mvlc_readout(
 		mvlc,
 	 	crateConfig,
-	 	listfileParams
+	 	listfileParams,
+		parserCallbacks
 	);
 
 	std::cout << "starting readout" << std::endl;
+	signal (SIGINT, &interrupt);
 
 	if (auto ec = rdo.start()) {
 		std::cerr << "Error starting readout: " << ec.message() << std::endl;
 		throw std::runtime_error("ReadoutWorker error");
 	}
 
-	signal (SIGINT, &interrupt);
-
-	uint64_t event_goal = argc > 3? (uint64_t) atof(argv[3]) : 0;
-	uint64_t events_gotten = 0;
-
-	if (event_goal != 0) {
-		printf("fetching %lli events\n", event_goal);
-	}
-
-	qdc_data last_event;
-
-	while (running && (event_goal == 0 || events_gotten < event_goal)) {
-		auto event = next_event(rdo);
-		if (event.type == EventContainer::Type::Readout) {
-			qdc_data data = parse_event_data(event.readout.moduleDataList[0]);
-			if (data == last_event) continue;
-			++ events_gotten;
-			std::fprintf(out_file, "%i, %i, %lli, %i, %lli\n",
-				data.long_integration, data.short_integration, data.time_diff, data.channel, events_gotten
-			);
-			fflush(out_file);
-			last_event = data;
-		}
-	}
+	while (!rdo.finished());
+	mvlc.disconnect();
 
 	interrupt(0);
 

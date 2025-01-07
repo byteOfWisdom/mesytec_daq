@@ -17,8 +17,7 @@ crate:
             - vme_write 0x09 d16 0xbb006034 0x00000001
   stack_triggers:
     - 0x40
-  init_registers:
-    {}
+  init_registers: {}
   init_trigger_io:
     name: init_trigger_io
     groups:
@@ -606,15 +605,14 @@ crate:
           - vme_write 0x09 d16 0x00006024 0x000000bb
   stop_commands:
     name: stop_commands
-    groups:
-      []
+    groups: []
   mcst_daq_start:
     name: mcst_daq_start
     groups:
       - name: event0.DAQ Start
         contents:
           - vme_write 0x09 d16 0xbb00603a 0x00000000
-          - vme_write 0x09 d16 0xbb006090 0x00000003
+          - vme_write 0x09 d16 0xbb006090 0x00000001
           - vme_write 0x09 d16 0xbb00603c 0x00000001
           - vme_write 0x09 d16 0xbb00603a 0x00000001
           - vme_write 0x09 d16 0xbb006034 0x00000001
