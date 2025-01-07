@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 	double pps = argc > 1? atof(argv[1]): 5.0;
 	const double time_unit = 12.5; // how many nanoseconds make up 1 count in timestamp
 
-	uint64_t time_lim = (1e9 / time_unit) / pps; //timeunits per second / prints per second
+	uint64_t time_lim = (uint64_t) ((1e9 / time_unit) / pps); //timeunits per second / prints per second
 	uint count = 0;
 	uint64_t last_emitted = 0;
 	uint64_t timestamp, l, s;
