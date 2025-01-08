@@ -1,7 +1,4 @@
 #include "mesytec-mvlc/mvlc.h"
-#include "mesytec-mvlc/mvlc_blocking_data_api.h"
-#include "mesytec-mvlc/mvlc_constants.h"
-#include "mesytec-mvlc/mvlc_factory.h"
 #include <bitset>
 #include <cstdint>
 #include <cstdio>
@@ -76,27 +73,35 @@ qdc_data parse_event_data(readout_parser::ModuleData data) {
 	const uint32_t data_mask = 0x0000ffff;
 
 	const uint32_t event_data_header = 0b0001 << 28;
-	const uint32_t timing_header = 0b11000000000000000000000000000000;
+	const uint32_t timing_header = 0b11 << 30;
 	const uint32_t extended_timing_header = 0b0010 << 28;
 	const uint32_t meta_header = 0b0100 << 28;
 
 	const uint32_t time_mask = ~timing_header;
 
-	for (uint8_t i = 0; i <= data.data.size; ++i) {
+	for (uint8_t i = 0; i < data.data.size; ++i) {
 		if ((raw[i] & header_mask) == event_data_header) {
 			auto [chan, value] = parse_event(raw[i]);
 			if (chan <= 15) res.channel = chan;
 			if (chan <= 15) res.long_integration = value;
 			if (chan >= 48 && chan <= 63) res.short_integration = value;
-			//if (chan >= 32 && chan <= 33) res.time_diff = value;
-		} else if ((raw[i] & header_mask) == timing_header) {
+		} else if ((raw[i] & timing_header) == timing_header) {
 			res.time_diff |= (raw[i] & time_mask);
-			printf("got normal time stamp: %u\n", raw[i] & time_mask);
+			//printf("got normal time stamp: %u\n", raw[i] & time_mask);
 		} else if ((raw[i] & header_mask) == extended_timing_header) {
 			res.time_diff |= ((uint64_t) (raw[i] & data_mask)) << 30;
-			printf("got extended time stamp: %u\n", raw[i] & data_mask);
+			//printf("got extended time stamp: %u\n", raw[i] & data_mask);
 		} else if ((raw[i] & header_mask) == meta_header) {
+			//uint16_t wc = 0b1111111111 & raw[i];
+			//printf("got wc: %u while size is: %u\n", wc, data.data.size);
 			continue;
+		}
+	}
+
+	if (res.time_diff == 0) {
+		std::cout << "got event without timestamp\n";
+		for (uint8_t i = 0; i < data.data.size; ++i) {
+			std::cout << std::bitset<32>(raw[i]) << "\n";
 		}
 	}
 
@@ -152,10 +157,12 @@ int main(int argc, char* argv[]){
 			data.long_integration, data.short_integration, data.time_diff, data.channel, (uint64_t) 0
 		);
 		fflush(out_file);
-
 	};
 
-	parserCallbacks.systemEvent = [] (void *, int crateId, const u32 *header, u32 size) {
+	bool print_sys_event = false;
+
+	parserCallbacks.systemEvent = [=] (void *, int crateId, const u32 *header, u32 size) {
+		if (!print_sys_event) return;
 		std::cout
 			<< "SystemEvent: type=" << system_event_type_to_string(
 				system_event::extract_subtype(*header))
@@ -171,6 +178,7 @@ int main(int argc, char* argv[]){
 		parserCallbacks
 	);
 
+
 	std::cout << "starting readout" << std::endl;
 	signal (SIGINT, &interrupt);
 
@@ -180,7 +188,6 @@ int main(int argc, char* argv[]){
 	}
 
 	while (!rdo.finished());
-	mvlc.disconnect();
 
 	interrupt(0);
 

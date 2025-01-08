@@ -612,7 +612,7 @@ crate:
       - name: event0.DAQ Start
         contents:
           - vme_write 0x09 d16 0xbb00603a 0x00000000
-          - vme_write 0x09 d16 0xbb006090 0x00000001
+          - vme_write 0x09 d16 0xbb006090 0x00000003
           - vme_write 0x09 d16 0xbb00603c 0x00000001
           - vme_write 0x09 d16 0xbb00603a 0x00000001
           - vme_write 0x09 d16 0xbb006034 0x00000001
