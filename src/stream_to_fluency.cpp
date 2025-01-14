@@ -36,16 +36,17 @@ int main(int argc, char** argv) {
 	uint count = 0;
 	uint64_t last_emitted = 0;
 	uint64_t timestamp, l, s;
+	uint dump;
 	int channel = 0;
 	//uint count_goal = 1000;
 	auto f = stdin;
 
 	for(;;) {
-		if (fscanf(f, "%llu, %llu, %llu, %u\n", &l, &s, &timestamp, &channel) != 4) return 1;
+		if (fscanf(f, "%llu, %llu, %llu, %u, %u\n", &l, &s, &timestamp, &channel, &dump) != 5) return 1;
 		++ count;
 
 		if (timestamp - last_emitted > time_lim) {
-			printf("%f %f\n", 1e9 * (double) count / (double) (timestamp - last_emitted), 1e9 * (double) count / (double) (timestamp - last_emitted) * 0.9);
+			printf("%f\n", 1e9 * (double) count / (double) (timestamp - last_emitted));
 			fflush(stdout);
 			last_emitted = timestamp;
 
