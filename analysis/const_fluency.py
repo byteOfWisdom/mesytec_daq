@@ -4,7 +4,7 @@ import numpy as np
 from scipy import optimize as opt
 from scipy import signal as sig
 from matplotlib import pyplot as plt
-from labtools import perror
+opfrom labtools import perror
 
 """
 when a constant fluency is assumed for the measurement time,
@@ -190,17 +190,22 @@ def classical_analysis():
 
     d = np.array(runs, dtype=np.float64)
 
-    exp_decay = lambda x, a, b: a * np.exp(- b * x)
-    params, cov = opt.curve_fit(exp_decay, d, count_rates, p0 = [0.2, 1e-2])
+    exp_decay = lambda x, a, b, c: c + a * np.exp(- b * x)
+    lin = lambda x, a, b: - a * x + b
+    params, cov = opt.curve_fit(lin, d, np.log(count_rates), p0 = [0.2, 1e-2])
     errors = np.sqrt(np.diag(cov))
 
+    plt.yscale("log")
     plt.errorbar(runs, perror.value(count_rates), perror.error(count_rates), marker='x', linestyle="None", label="event rate", color="red")
     d_range = np.linspace(0., 350., 1000)
-    plt.plot(d_range, exp_decay(d_range, *params), label="e-Fit", color="blue")
-    a = perror.ev(params[0], errors[0])
-    b = perror.ev(params[1], errors[1])
+    #plt.plot(d_range, exp_decay(d_range, *params), label="e-Fit", color="blue")
+    plt.plot(d_range, np.exp(lin(d_range, *params)), label="e-Fit", color="blue")
+    b = perror.ev(params[0], errors[0])
+    a = perror.ev(params[1], errors[1])
+    #c = perror.ev(params[2], errors[2])
     print(f"a = {a} s^-1")
     print(f"b = {b} mm^-1")
+    #print(f"c = {c} s^-1")
     plt.title(r"$d_{\frac{1}{2}} = " + str(np.log(2) / b) + r"mm$")
     plt.legend()
     plt.xlabel("PE-shielding [mm]")
