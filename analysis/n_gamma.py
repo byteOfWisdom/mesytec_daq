@@ -6,7 +6,15 @@ from scipy import signal as sig
 
 
 # %%
-runs = ["n_gamma_default_settings.csv", "n_y_run_1.csv", "n_y_run_2.csv", "n_y_run_3.csv", "n_y_run_4.csv", "n_y_run_5.csv", "n_y_run_6.csv"]
+runs = [
+    "n_gamma_default_settings.csv",
+    "n_y_run_1.csv",
+    "n_y_run_2.csv",
+    "n_y_run_3.csv",
+    "n_y_run_4.csv",
+    "n_y_run_5.csv",
+    "n_y_run_6.csv"
+]
 
 prefix = "../../calibration_data/scint_test_data/"
 
@@ -84,8 +92,8 @@ def analyze_run(n):
     sigma_neutron = np.sqrt(params[5])
     peak_diff = np.abs(params[3] - params[2])
 
-    print(f"sigma_gamma = {sigma_gamma} +- {errors[4]}")
-    print(f"sigma_neutron = {sigma_neutron} +- {errors[5]}")
+    print(f"sigma_gamma_sq = {params[4]} +- {errors[4]}")
+    print(f"sigma_neutron_sq = {params[5]} +- {errors[5]}")
     print(f"mu_gamma = {params[2]} +- {errors[2]}")
     print(f"mu_neutron = {params[3]} +- {errors[3]}")
     print(f"a_gamma = {params[0]} +- {errors[0]}")
