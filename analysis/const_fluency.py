@@ -1,10 +1,11 @@
 # %%
-from ast import Param
+#from ast import Param
 import numpy as np
 from scipy import optimize as opt
 from scipy import signal as sig
 from matplotlib import pyplot as plt
-opfrom labtools import perror
+from labtools import perror
+#import perror
 
 """
 when a constant fluency is assumed for the measurement time,
