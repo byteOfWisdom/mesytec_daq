@@ -30,9 +30,10 @@ uint64_t parse(string& line) {
 
 int main(int argc, char** argv) {
 	double pps = argc > 1? atof(argv[1]): 5.0;
-	const double time_unit = 12.5; // how many nanoseconds make up 1 count in timestamp
+	const double time_unit = 12.5e-9; // how many nanoseconds make up 1 count in timestamp
 
-	uint64_t time_lim = (uint64_t) ((1e9 / time_unit) / pps); //timeunits per second / prints per second
+	double one_second = 1. / time_unit;
+	uint64_t time_lim = (uint64_t) (one_second / pps); //timeunits per second / prints per second
 	uint count = 0;
 	uint64_t last_emitted = 0;
 	uint64_t timestamp, l, s;
@@ -46,7 +47,8 @@ int main(int argc, char** argv) {
 		++ count;
 
 		if (timestamp - last_emitted > time_lim) {
-			printf("%f\n", 1e9 * (double) count / (double) (timestamp - last_emitted));
+			double delta_t = (timestamp - last_emitted) * time_unit;
+			printf("%f\n", (double) count / delta_t);
 			fflush(stdout);
 			last_emitted = timestamp;
 
