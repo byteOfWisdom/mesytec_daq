@@ -156,7 +156,7 @@ int main(int argc, char* argv[]){
 		std::fprintf(out_file, "%i, %i, %lli, %i, %lli\n",
 			data.long_integration, data.short_integration, data.time_diff, data.channel, (uint64_t) 0
 		);
-		fflush(out_file);
+		// fflush(out_file);
 	};
 
 	bool print_sys_event = false;
