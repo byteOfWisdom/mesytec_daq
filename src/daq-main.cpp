@@ -182,9 +182,12 @@ int main(int argc, char* argv[]){
 	std::cout << "starting readout" << std::endl;
 	signal (SIGINT, &interrupt);
 
-	if (auto ec = rdo.start()) {
-		std::cerr << "Error starting readout: " << ec.message() << std::endl;
-		throw std::runtime_error("ReadoutWorker error");
+	int tc = 16;
+		for (int i = 0; i < tc; ++i){
+		if (auto ec = rdo.start()) {
+			std::cerr << "Error starting readout: " << ec.message() << std::endl;
+			throw std::runtime_error("ReadoutWorker error");
+		}
 	}
 
 	while (!rdo.finished());
