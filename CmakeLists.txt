@@ -7,7 +7,7 @@ add_subdirectory(mesytec-mvlc)
 include_directories(${mesytec-mvlc_SOURCE_DIR})
 
 add_executable(mdaq src/daq-main.cpp)
-target_link_libraries(mdaq PRIVATE mesytec-mvlc)
+target_link_libraries(mdaq PRIVATE mesytec-mvlc PUBLIC OMP)
 
 add_executable(stf src/stream_to_fluency.cpp)
 add_executable(synth_data src/synth_data.cpp)
