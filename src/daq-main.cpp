@@ -149,6 +149,8 @@ int main(int argc, char* argv[]){
 	parserCallbacks.eventData = [] (
 		void *, int crateId, int eventIndex, const readout_parser::ModuleData *moduleDataList, unsigned moduleCount)
 	{
+		#pragma omp parallel
+		{
 		(void) moduleCount;
 		(void) crateId;
 		(void) eventIndex;
@@ -157,6 +159,7 @@ int main(int argc, char* argv[]){
 			data.long_integration, data.short_integration, data.time_diff, data.channel, (uint64_t) 0
 		);
 		// fflush(out_file);
+		}
 	};
 
 	bool print_sys_event = false;
@@ -182,12 +185,9 @@ int main(int argc, char* argv[]){
 	std::cout << "starting readout" << std::endl;
 	signal (SIGINT, &interrupt);
 
-	int tc = 16;
-		for (int i = 0; i < tc; ++i){
-		if (auto ec = rdo.start()) {
-			std::cerr << "Error starting readout: " << ec.message() << std::endl;
-			throw std::runtime_error("ReadoutWorker error");
-		}
+	if (auto ec = rdo.start()) {
+		std::cerr << "Error starting readout: " << ec.message() << std::endl;
+		throw std::runtime_error("ReadoutWorker error");
 	}
 
 	while (!rdo.finished());
