@@ -10,6 +10,7 @@
 #include <tuple>
 #include <signal.h>
 #include <stdio.h>
+#include <omp.h>
 
 using namespace mesytec::mvlc;
 
